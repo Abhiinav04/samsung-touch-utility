@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Samsung Touchscreen CLI Utility for Linux
+# Supports: Samsung Galaxy Book series (Goodix GXTP7936, Atmel, Elan)
+# Works on: Wayland and X11 (Ubuntu, Fedora, Arch, Debian, openSUSE)
+# ==============================================================================
+
+set -euo pipefail
+
+# Find the I2C device node under /sys/bus/i2c/devices/
+find_i2c_device() {
+    for dev in /sys/bus/i2c/devices/i2c-*; do
+        if [ -f "$dev/name" ]; then
+            local name
+            name=$(cat "$dev/name")
+            if [[ "$name" =~ (GXTP|Goodix|touchscreen|TouchScreen) ]]; then
+                basename "$dev"
+                return 0
+            fi
+        fi
+    done
+
+    # Fallback search for ACPI hardware identifier
+    for dev in /sys/bus/i2c/devices/*GXTP*; do
+        if [ -e "$dev" ]; then
+            basename "$dev"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+# Determine current status: "ENABLED", "DISABLED", or "UNKNOWN"
+get_status() {
+    local i2c_dev
+    if i2c_dev=$(find_i2c_device); then
+        if [ -e "/sys/bus/i2c/devices/$i2c_dev/driver" ]; then
+            echo "ENABLED"
+            return 0
+        else
+            echo "DISABLED"
+            return 0
+        fi
+    fi
+
+    # Fallback to xinput if available (X11)
+    if command -v xinput >/dev/null 2>&1; then
+        local id
+        id=$(xinput list --id-only "pointer:Goodix TouchScreen" 2>/dev/null || xinput list --id-only "pointer:GXTP7936:00 27C6:011A Touchscreen" 2>/dev/null || true)
+        if [ -n "$id" ]; then
+            local prop
+            prop=$(xinput list-props "$id" 2>/dev/null | grep "Device Enabled" | awk '{print $NF}' || true)
+            if [ "$prop" = "1" ]; then
+                echo "ENABLED"
+                return 0
+            elif [ "$prop" = "0" ]; then
+                echo "DISABLED"
+                return 0
+            fi
+        fi
+    fi
+
+    echo "UNKNOWN"
+    return 1
+}
+
+# Enable touchscreen
+enable_touch() {
+    local i2c_dev
+    if i2c_dev=$(find_i2c_device); then
+        local driver_dir="/sys/bus/i2c/drivers/i2c_hid_acpi"
+        [ -d "$driver_dir" ] || driver_dir="/sys/bus/i2c/drivers/i2c_hid"
+
+        if [ -e "$driver_dir/bind" ] && [ ! -e "/sys/bus/i2c/devices/$i2c_dev/driver" ]; then
+            if [ -w "$driver_dir/bind" ]; then
+                echo "$i2c_dev" > "$driver_dir/bind"
+            else
+                echo "$i2c_dev" | sudo tee "$driver_dir/bind" >/dev/null
+            fi
+            echo "Touchscreen ENABLED successfully via sysfs."
+            return 0
+        fi
+    fi
+
+    # Fallback to xinput (X11)
+    if command -v xinput >/dev/null 2>&1; then
+        local id
+        id=$(xinput list --id-only "pointer:Goodix TouchScreen" 2>/dev/null || xinput list --id-only "pointer:GXTP7936:00 27C6:011A Touchscreen" 2>/dev/null || true)
+        if [ -n "$id" ]; then
+            xinput enable "$id"
+            echo "Touchscreen ENABLED successfully via xinput."
+            return 0
+        fi
+    fi
+
+    echo "Error: Could not enable touchscreen." >&2
+    return 1
+}
+
+# Disable touchscreen
+disable_touch() {
+    local i2c_dev
+    if i2c_dev=$(find_i2c_device); then
+        local driver_dir="/sys/bus/i2c/drivers/i2c_hid_acpi"
+        [ -d "$driver_dir" ] || driver_dir="/sys/bus/i2c/drivers/i2c_hid"
+
+        if [ -e "$driver_dir/unbind" ] && [ -e "/sys/bus/i2c/devices/$i2c_dev/driver" ]; then
+            if [ -w "$driver_dir/unbind" ]; then
+                echo "$i2c_dev" > "$driver_dir/unbind"
+            else
+                echo "$i2c_dev" | sudo tee "$driver_dir/unbind" >/dev/null
+            fi
+            echo "Touchscreen DISABLED successfully via sysfs."
+            return 0
+        fi
+    fi
+
+    # Fallback to xinput (X11)
+    if command -v xinput >/dev/null 2>&1; then
+        local id
+        id=$(xinput list --id-only "pointer:Goodix TouchScreen" 2>/dev/null || xinput list --id-only "pointer:GXTP7936:00 27C6:011A Touchscreen" 2>/dev/null || true)
+        if [ -n "$id" ]; then
+            xinput disable "$id"
+            echo "Touchscreen DISABLED successfully via xinput."
+            return 0
+        fi
+    fi
+
+    echo "Error: Could not disable touchscreen." >&2
+    return 1
+}
+
+# Toggle touchscreen
+toggle_touch() {
+    local current
+    current=$(get_status || echo "UNKNOWN")
+    case "$current" in
+        ENABLED)
+            disable_touch
+            ;;
+        DISABLED)
+            enable_touch
+            ;;
+        *)
+            echo "Device status is currently UNKNOWN. Attempting to enable..."
+            enable_touch
+            ;;
+    esac
+}
+
+case "${1:-toggle}" in
+    status|--status|-s)
+        get_status
+        ;;
+    enable|--enable|-e)
+        enable_touch
+        ;;
+    disable|--disable|-d)
+        disable_touch
+        ;;
+    toggle|--toggle|-t)
+        toggle_touch
+        ;;
+    help|--help|-h)
+        echo "Usage: samsung-touch-toggle [status|enable|disable|toggle]"
+        exit 0
+        ;;
+    *)
+        echo "Unknown option: $1" >&2
+        echo "Usage: samsung-touch-toggle [status|enable|disable|toggle]" >&2
+        exit 1
+        ;;
+esac

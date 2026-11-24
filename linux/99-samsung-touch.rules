@@ -1,0 +1,5 @@
+# udev rule to allow user permissions for unbind/bind of Samsung/Goodix touchscreens
+# Places write permissions on sysfs for touchscreen devices without requiring sudo
+SUBSYSTEM=="i2c", ATTR{name}=="*GXTP*", GROUP="users", MODE="0664"
+SUBSYSTEM=="i2c", ATTR{name}=="*Goodix*", GROUP="users", MODE="0664"
+SUBSYSTEM=="drivers", KERNEL=="i2c_hid_acpi", ATTR{bind}="0666", ATTR{unbind}="0666"

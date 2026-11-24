@@ -1,0 +1,36 @@
+name: CI Build & Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+    - name: Restore dependencies
+      run: dotnet restore SamsungTouchUtility.slnx
+    - name: Build
+      run: dotnet build SamsungTouchUtility.slnx --no-restore -c Release
+    - name: Test
+      run: dotnet test SamsungTouchUtility.slnx --no-build -c Release --verbosity normal
+
+  lint-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Validate Linux Shell Scripts
+      run: |
+        bash -n linux/samsung-touch-toggle
+        bash -n linux/install.sh
+        bash -n linux/uninstall.sh
+    - name: Validate Python Syntax
+      run: |
+        python3 -m py_compile linux/samsung_touch_utility.py

@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SamsungTouchUtility/SamsungTouchUtility.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HardwareTests/HardwareTests.csproj" />
+    <Project Path="tests/IntegrationTests/IntegrationTests.csproj" />
+    <Project Path="tests/UnitTests/UnitTests.csproj" />
+  </Folder>
+</Solution>

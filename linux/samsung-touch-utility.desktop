@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Samsung Touchscreen Utility
+Comment=Single-click system tray touchscreen toggle for Samsung laptops
+Exec=samsung-touch-utility
+Icon=input-touchscreen
+Terminal=false
+Categories=Utility;Settings;HardwareSettings;
+StartupNotify=false
+X-GNOME-Autostart-enabled=true
