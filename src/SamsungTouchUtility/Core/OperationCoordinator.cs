@@ -124,9 +124,10 @@ namespace SamsungTouchUtility.Core
                 {
                     _logger.LogInfo($"Toggle SUCCESS: New verified state is {result.NewStatus}");
                     _tray.UpdateState(result.NewStatus);
+                    string toastText = result.NewStatus == DeviceStatus.Enabled ? "Touchscreen ON" : "Touchscreen OFF";
                     _tray.ShowNotification(
                         "Touchscreen",
-                        result.NewStatus == DeviceStatus.Enabled ? "Touchscreen ENABLED" : "Touchscreen DISABLED",
+                        toastText,
                         ToolTipIcon.Info);
                 }
                 else

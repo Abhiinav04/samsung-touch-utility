@@ -43,10 +43,10 @@ namespace SamsungTouchUtility
 
             // Display startup notification so user knows application is active in tray
             var status = _coordinator.ActiveDevice?.CurrentStatus ?? DeviceStatus.Unknown;
-            string statusText = status == DeviceStatus.Enabled ? "ENABLED (TOUCH ON)" : "DISABLED (TOUCH OFF)";
+            string statusText = status == DeviceStatus.Enabled ? "Touchscreen ON" : (status == DeviceStatus.Disabled ? "Touchscreen OFF" : "Touchscreen Ready");
             _tray.ShowNotification(
                 "Samsung Touch Utility",
-                $"Touchscreen is {statusText}.\nPress Ctrl+Alt+T or click tray icon to toggle.",
+                statusText,
                 ToolTipIcon.Info);
         }
 

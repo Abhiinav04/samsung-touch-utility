@@ -62,6 +62,13 @@ namespace SamsungTouchUtility.Tray
         {
             try
             {
+                DeviceStatus derivedStatus = message.Contains("ENABLED", StringComparison.OrdinalIgnoreCase) || message.Contains(" ON", StringComparison.OrdinalIgnoreCase)
+                    ? DeviceStatus.Enabled
+                    : (message.Contains("DISABLED", StringComparison.OrdinalIgnoreCase) || message.Contains(" OFF", StringComparison.OrdinalIgnoreCase)
+                        ? DeviceStatus.Disabled
+                        : (message.Contains("Reboot", StringComparison.OrdinalIgnoreCase) ? DeviceStatus.RebootPending : DeviceStatus.Unknown));
+
+                OnScreenDisplay.ShowToast(message, derivedStatus);
                 _notifyIcon.ShowBalloonTip(2000, title, message, icon);
             }
             catch
